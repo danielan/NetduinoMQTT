@@ -1,0 +1,7 @@
+NetduinoMQTT
+
+This is a simple, incomplete, MQTT message publisher.  
+
+It started as a toy project for me to explore the Netduino Plus, but there was some interest, so I'm going to take this a bit farther then I had originally intended.
+
+Given this, posting the source periodically as text in my blog didn't seem appropriate.
