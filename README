@@ -1,9 +1,30 @@
 NetduinoMQTT
 
-This is a simple, incomplete, MQTT message publisher.  
+Introduction:
 
-It started as a toy project for me to explore the Netduino Plus, but there was some interest, so I'm going to take this a bit farther then I had originally intended.
+This is a simple, incomplete, MQTT (MQTT.org) message publisher.  
 
-Given this, posting the source periodically as text in my blog didn't seem appropriate.
+It can be used by the Netduino to send MQTT messages to a MQTT broker.
 
-I have no experience with git and I think the last source code control system I used with any frequency was sccs on SunOS 4 - so, if I'm doing something wrong here - please let me know.
+This program is intended to be VERY readable - even at the expense of size/performance.
+
+This supports:
+
+1.  Connecting to an MQTT broker (RSMB and mosquitto have been tested) (Section 3.1)
+2.  Sending MQTT messages to a broker (Section 3.3)
+3.  Disconnecting from a broker (Section 3.14) 
+
+
+This does not currently support:
+
+1.  Anything to do with QoS > 0 
+2.  Any subscription functionality
+3.  "Will" functionality
+
+
+So, yes, it is not a complete client at this time.  But as a "publisher", it supports useful features like authentication and full allowed length parameters (topic, message, username, password, etc).
+
+It has not been comprehensively tested.  If you do any testing - please let me know your results.  I did some functional testing that seemed good and I'm planning on testing further when time allows.  But, if you use this - I'd love the feedback/assistance.
+
+Thanks
+Dan

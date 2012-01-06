@@ -16,7 +16,7 @@ namespace myNetduinoMQTT
         {
 
             Socket mySocket = ConnectSocket("192.168.1.106",1883);
-            NetduinoMQTT.ConnectMQTT(mySocket, "tester123", 10);
+            NetduinoMQTT.ConnectMQTT(mySocket, "tester123", 10, true, "roger", "password");
             NetduinoMQTT.PublishMQTT(mySocket, "test", "testme12");
             Thread.Sleep(1000);
             NetduinoMQTT.DisconnectMQTT(mySocket);
