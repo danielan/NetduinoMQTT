@@ -13,6 +13,7 @@ This supports:
 1.  Connecting to an MQTT broker (RSMB and mosquitto have been tested) (Section 3.1)
 2.  Sending MQTT messages to a broker (Section 3.3)
 3.  Disconnecting from a broker (Section 3.14) 
+4.  Pings
 
 
 This does not currently support:
