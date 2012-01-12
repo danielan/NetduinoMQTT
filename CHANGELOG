@@ -1,3 +1,8 @@
 NetduinoMQTT ChangeLog:
+
+Version 0.01:
 0.01a - Jan 11 - BugFix 256 versus 255 in all byte splitting operations.
 0.01 - Dec 25 - Jan 11 - Basic MQTT Publishing - numerous enhancements over several weeks.  First release.
+
+Version 0.02:
+
