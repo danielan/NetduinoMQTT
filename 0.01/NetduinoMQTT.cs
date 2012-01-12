@@ -215,12 +215,12 @@ namespace Netduino_MQTT_Client_Library
             buffer[index++] = connectFlags;
 
             // Keep alive (defaulted to 20 seconds above)
-            buffer[index++] = (byte)(keepAlive / 255); // Keep Alive MSB
-            buffer[index++] = (byte)(keepAlive % 255); // Keep Alive LSB
+            buffer[index++] = (byte)(keepAlive / 256); // Keep Alive MSB
+            buffer[index++] = (byte)(keepAlive % 256); // Keep Alive LSB
 
             // ClientID
-            buffer[index++] = (byte)(utf8ClientID.Length / 255); // Length MSB
-            buffer[index++] = (byte)(utf8ClientID.Length % 255); // Length LSB
+            buffer[index++] = (byte)(utf8ClientID.Length / 256); // Length MSB
+            buffer[index++] = (byte)(utf8ClientID.Length % 256); // Length LSB
             for (var i = 0; i < utf8ClientID.Length; i++)
             {
                 buffer[index++] = utf8ClientID[i];
@@ -229,8 +229,8 @@ namespace Netduino_MQTT_Client_Library
             // Username
             if (usingUsername)
             {
-                buffer[index++] = (byte)(utf8Username.Length / 255); // Length MSB
-                buffer[index++] = (byte)(utf8Username.Length % 255); // Length LSB
+                buffer[index++] = (byte)(utf8Username.Length / 256); // Length MSB
+                buffer[index++] = (byte)(utf8Username.Length % 256); // Length LSB
 
                 for (var i = 0; i < utf8Username.Length; i++)
                 {
@@ -241,8 +241,8 @@ namespace Netduino_MQTT_Client_Library
             // Password
             if (usingPassword)
             {
-                buffer[index++] = (byte)(utf8Password.Length / 255); // Length MSB
-                buffer[index++] = (byte)(utf8Password.Length % 255); // Length LSB
+                buffer[index++] = (byte)(utf8Password.Length / 256); // Length MSB
+                buffer[index++] = (byte)(utf8Password.Length % 256); // Length LSB
 
                 for (var i = 0; i < utf8Password.Length; i++)
                 {
@@ -355,8 +355,8 @@ namespace Netduino_MQTT_Client_Library
 
             // Start of Variable header
             // Length of topic name
-            buffer[index++] = (byte)(utf8Topic.Length / 255); // Length MSB
-            buffer[index++] = (byte)(utf8Topic.Length % 255); // Length LSB
+            buffer[index++] = (byte)(utf8Topic.Length / 256); // Length MSB
+            buffer[index++] = (byte)(utf8Topic.Length % 256); // Length LSB
             // Topic
             for (var i = 0; i < utf8Topic.Length; i++)
             {
