@@ -37,6 +37,8 @@ namespace Netduino_MQTT_Client_Library
     {
 
         // TODO: Add other constants so we don't have "magic" numbers
+        // TODO: Determine some useful arbitrary limits here - this 
+        //       hardware doesn't support the protocol maximums
         public const int MQTTPROTOCOLVERSION = 3;
         public const int MAXLENGTH = 268435455; // 256MB
         public const int MAX_CLIENTID = 23;
@@ -249,10 +251,10 @@ namespace Netduino_MQTT_Client_Library
                     buffer[index++] = utf8Password[i];
                 }
             }
-            
+
             // Send the message
             returnCode = mySocket.Send(buffer, index, 0);
-            
+
             // The return code should equal our buffer length
             if (returnCode != buffer.Length)
             {
@@ -261,20 +263,20 @@ namespace Netduino_MQTT_Client_Library
 
             // Get the acknowledgement message
             returnCode = mySocket.Receive(buffer, 0);
-            
+
             // The length should equal 4
             if (returnCode != Constants.CONNACK_LENGTH)
             {
                 return Constants.CONNECTION_ERROR;
             }
-            
+
             // This should be a message type 2 (CONNACK)
             if (buffer[0] == Constants.MQTT_CONNACK_TYPE)
             {
                 // This is our return code from the server
                 return buffer[3];
             }
-            
+
             // If not zero = return the return code
             return Constants.CONNECTION_ERROR;
         }
@@ -297,11 +299,11 @@ namespace Netduino_MQTT_Client_Library
             byte[] utf8Topic = Encoding.UTF8.GetBytes(topic);
 
             // Some error checking
-            
+
             // Topic contains wildcards
             if ((topic.IndexOf('#') != -1) || (topic.IndexOf('+') != -1))
                 return Constants.TOPIC_WILDCARD_ERROR;
-            
+
             // Topic is too long or short
             if ((utf8Topic.Length > Constants.MAX_TOPIC_LENGTH) || (utf8Topic.Length < Constants.MIN_TOPIC_LENGTH))
                 return Constants.TOPIC_LENGTH_ERROR;
@@ -394,7 +396,7 @@ namespace Netduino_MQTT_Client_Library
             byte[] buffer = null;
 
             buffer = new byte[2];
-            buffer[index++] = Constants.MQTT_PING_REQ_TYPE; 
+            buffer[index++] = Constants.MQTT_PING_REQ_TYPE;
             buffer[index++] = 0x00;
 
             // Send the ping
@@ -405,22 +407,102 @@ namespace Netduino_MQTT_Client_Library
             {
                 return Constants.CONNECTION_ERROR;
             }
+            return 0;
+        }
 
-            // Get the acknowledgement message
-            returnCode = mySocket.Receive(buffer, 0);
+        public static int handlePINGRESP(Socket mySocket, byte firstByte)
+        {
+            Debug.Print("Ping Response Received");
+            return 0;
+        }
 
-            // The length should equal 2
-            if (returnCode != Constants.PINGRESP_LENGTH)
+        //public static int handleCONNACK(Socket mySocket, byte firstByte)
+        //{
+        //    Debug.Print("Connection Acknowledgement Received");
+        //    return 0;
+        //}
+
+        public static int handlePUBLISH(Socket mySocket, byte firstByte)
+        {
+            Debug.Print("Publish Message Received");
+            return 0;
+        }
+
+        public static int handlePUBACK(Socket mySocket, byte firstByte)
+        {
+            Debug.Print("Publication Acknowledgement Received");
+            return 0;
+        }
+
+        public static int handleSUBACK(Socket mySocket, byte firstByte)
+        {
+            Debug.Print("Subscription Acknowledgement Received");
+            return 0;
+        }
+
+        public static int handleUNSUBACK(Socket mySocket, byte firstByte)
+        {
+            Debug.Print("Unsubscription Acknowledgement Received");
+            return 0;
+        }
+
+        public static int listen(Socket mySocket)
+        {
+            int returnCode = 0;
+            byte first = 0x00;
+            byte[] buffer = new byte[1];
+            while (true)
             {
-                return Constants.CONNECTION_ERROR;
+                returnCode = mySocket.Receive(buffer, 0);
+                if (returnCode > 0)
+                { 
+                    first = buffer[0];
+                    switch(first >> 4)
+                    {
+                        case 0:  // Reserved
+                            break;
+                        case 1:  // Connect
+                            break;
+                        case 2:  // CONNACK
+                            //handleCONNACK(mySocket,first);
+                            break;
+                        case 3:  // PUBLISH
+                            handlePUBLISH(mySocket, first);
+                            break;
+                        case 4:  // PUBACK
+                            handlePUBACK(mySocket, first);
+                            break;
+                        case 5:  // PUBREC
+                            break;
+                        case 6:  // PUBREL
+                            break;
+                        case 7:  // PUBCOMP
+                            break;
+                        case 8:  // SUBSCRIBE
+                            break;
+                        case 9:  // SUBACK
+                            handleSUBACK(mySocket, first);
+                            break;
+                        case 10:  // UNSUBSCRIBE
+                            break;
+                        case 11:  // UNSUBACK
+                            handleUNSUBACK(mySocket, first);
+                            break;
+                        case 12:  // PINGREQ
+                            break;
+                        case 13:  // PINGRESP
+                            handlePINGRESP(mySocket, first);
+                            break;
+                        case 14:  // DISCONNECT
+                            break;
+                        case 15:  // Reserved
+                            break;
+                        default:  // Default action
+                            Debug.Print("Bad Message received");
+                            break;
+                    }
+                }
             }
-
-            // This should be a message type 2 (CONNACK)
-            if (buffer[0] == Constants.MQTT_PING_RESP_TYPE)
-            {
-                return 0;
-            }
-            return Constants.CONNECTION_ERROR;
         }
     }
 }
