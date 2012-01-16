@@ -38,7 +38,7 @@ namespace myNetduinoMQTT
 {
     public class Program
     {
-        static Thread listenerThread; // Prints data every second
+        static Thread listenerThread;
 
         static Socket mySocket = null;
 
