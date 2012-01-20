@@ -29,6 +29,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using Microsoft.SPOT;
+using Microsoft.SPOT.Hardware;
 using Socket = System.Net.Sockets.Socket;
 
 namespace Netduino_MQTT_Client_Library
@@ -49,6 +50,7 @@ namespace Netduino_MQTT_Client_Library
         public const int MAX_PASSWORD = 65535;
         public const int MAX_TOPIC_LENGTH = 32767;
         public const int MIN_TOPIC_LENGTH = 1;
+        public const int MAX_MESSAGEID = 65535;
 
         // Error Codes
         public const int CLIENTID_LENGTH_ERROR = 1;
@@ -73,12 +75,13 @@ namespace Netduino_MQTT_Client_Library
         public const byte MQTT_CONN_NOT_AUTH = 0x05;  //  Connection Refused: not authorized
 
         // Message types
-        public const int MQTT_CONNECT_TYPE = 0x10;
-        public const int MQTT_CONNACK_TYPE = 0x20;
-        public const int MQTT_PUBLISH_TYPE = 0x30;
-        public const int MQTT_PING_REQ_TYPE = 0xc0;
-        public const int MQTT_PING_RESP_TYPE = 0xd0;
-        public const int MQTT_DISCONNECT_TYPE = 0xe0;
+        public const byte MQTT_CONNECT_TYPE = 0x10;
+        public const byte MQTT_CONNACK_TYPE = 0x20;
+        public const byte MQTT_PUBLISH_TYPE = 0x30;
+        public const byte MQTT_PING_REQ_TYPE = 0xc0;
+        public const byte MQTT_PING_RESP_TYPE = 0xd0;
+        public const byte MQTT_DISCONNECT_TYPE = 0xe0;
+        public const byte MQTT_SUBSCRIBE_TYPE = 0x82;
 
         // Flags
         public const int CLEAN_SESSION_FLAG = 0x02;
@@ -89,6 +92,8 @@ namespace Netduino_MQTT_Client_Library
 
     public static class NetduinoMQTT
     {
+
+        private static Random rand = new Random((int)(Utility.GetMachineTime().Ticks & 0xffffffff));
 
         public static int ConnectMQTT(Socket mySocket, String clientID, int keepAlive = 20, bool cleanSession = true, String username = "", String password = "")
         {
@@ -387,6 +392,128 @@ namespace Netduino_MQTT_Client_Library
             return mySocket.Send(buffer, buffer.Length, 0);
         }
 
+        // Subscribe to a topic TODO
+        public static int SubscribeMQTT(Socket mySocket, String[] topic, int[] QoS, int topics)
+        {
+
+            int index = 0;
+            int index2 = 0;
+            int messageIndex = 0;
+            int messageID = 0;
+            int digit = 0;
+            int tmp = 0;
+            int fixedHeader = 0;
+            int varHeader = 0;
+            int payloadLength = 0;
+            int remainingLength = 0;
+            byte[] buffer = null;
+            byte[][] utf8Topics = null;
+            
+            UTF8Encoding encoder = new UTF8Encoding();
+
+            utf8Topics = new byte[topics][];
+
+            while (index < topics)
+            {
+                utf8Topics[index] = new byte[Encoding.UTF8.GetBytes(topic[index]).Length];
+                utf8Topics[index] = Encoding.UTF8.GetBytes(topic[index]);
+                if ((utf8Topics[index].Length > Constants.MAX_TOPIC_LENGTH) || (utf8Topics[index].Length < Constants.MIN_TOPIC_LENGTH))
+                {
+                    return Constants.TOPIC_LENGTH_ERROR;
+                }
+                else
+                {
+                    payloadLength += 2; // Size (LSB + MSB)
+                    payloadLength += utf8Topics[index].Length;  // Length of topic
+                    payloadLength++; // QoS Requested
+                    index++;
+                }
+                
+            }
+
+            // Some error checking
+            // TODO
+
+            // Calculate the size of the fixed header
+            fixedHeader++; // byte 1
+
+            // Calculate the size of the var header
+            varHeader += 2; // Message ID is 2 bytes
+
+            // Calculate the remaining size
+            remainingLength = varHeader + payloadLength;
+
+            // Check that remaining encoded length will fit into 4 encoded bytes
+            if (remainingLength > Constants.MAXLENGTH)
+                return Constants.MESSAGE_LENGTH_ERROR;
+
+            // Add space for each byte we need in the fixed header to store the length
+            tmp = remainingLength;
+            while (tmp > 0)
+            {
+                fixedHeader++;
+                tmp = tmp / 128;
+            };
+            // End of Fixed Header
+
+            // Build buffer for message
+            buffer = new byte[fixedHeader + varHeader + payloadLength];
+
+            // Start of Fixed header
+            // Publish (3.3)
+            buffer[messageIndex++] = Constants.MQTT_SUBSCRIBE_TYPE;
+
+            // Encode the fixed header remaining length
+            tmp = remainingLength;
+            do
+            {
+                digit = tmp % 128;
+                tmp = tmp / 128;
+                if (tmp > 0)
+                {
+                    digit = digit | 0x80;
+                }
+                buffer[messageIndex++] = (byte)digit;
+            } while (tmp > 0);
+            // End of fixed header
+
+            // Start of Variable header
+            
+            // Message ID
+            messageID = rand.Next(Constants.MAX_MESSAGEID);
+            buffer[messageIndex++] = (byte)(messageID / 256); // Length MSB
+            buffer[messageIndex++] = (byte)(messageID % 256); // Length LSB
+
+            // End of variable header
+
+            // Start of Payload
+            index = 0;
+            while (index < topics)
+            {
+                // Length of Topic
+                buffer[messageIndex++] = (byte)(utf8Topics[index].Length / 256); // Length MSB 
+                buffer[messageIndex++] = (byte)(utf8Topics[index].Length % 256); // Length MSB 
+                
+                index2 = 0;
+                while (index2 < utf8Topics[index].Length)
+                {
+                    buffer[messageIndex++] = utf8Topics[index][index2];
+                    index2++;
+                }
+                buffer[messageIndex++] = (byte)(QoS[index]);
+                index++;
+            }
+            // End of Payload
+
+            return mySocket.Send(buffer, buffer.Length, 0);
+        }
+
+        // Unsubscribe to a topic TODO
+        public static int UnsubscribeMQTT(Socket mySocket, String topic)
+        {
+            return 0;
+        }
+
         // Ping the MQTT broker - used to extend keep alive
         public static int PingMQTT(Socket mySocket)
         {
@@ -410,42 +537,6 @@ namespace Netduino_MQTT_Client_Library
             return 0;
         }
 
-        public static int handlePINGRESP(Socket mySocket, byte firstByte)
-        {
-            Debug.Print("Ping Response Received");
-            return 0;
-        }
-
-        //public static int handleCONNACK(Socket mySocket, byte firstByte)
-        //{
-        //    Debug.Print("Connection Acknowledgement Received");
-        //    return 0;
-        //}
-
-        public static int handlePUBLISH(Socket mySocket, byte firstByte)
-        {
-            Debug.Print("Publish Message Received");
-            return 0;
-        }
-
-        public static int handlePUBACK(Socket mySocket, byte firstByte)
-        {
-            Debug.Print("Publication Acknowledgement Received");
-            return 0;
-        }
-
-        public static int handleSUBACK(Socket mySocket, byte firstByte)
-        {
-            Debug.Print("Subscription Acknowledgement Received");
-            return 0;
-        }
-
-        public static int handleUNSUBACK(Socket mySocket, byte firstByte)
-        {
-            Debug.Print("Unsubscription Acknowledgement Received");
-            return 0;
-        }
-
         public static int listen(Socket mySocket)
         {
             int returnCode = 0;
@@ -455,54 +546,129 @@ namespace Netduino_MQTT_Client_Library
             {
                 returnCode = mySocket.Receive(buffer, 0);
                 if (returnCode > 0)
-                { 
+                {
                     first = buffer[0];
-                    switch(first >> 4)
+                    switch (first >> 4)
                     {
                         case 0:  // Reserved
+                            returnCode = 0;
                             break;
                         case 1:  // Connect
+                            returnCode = 0;
                             break;
                         case 2:  // CONNACK
-                            //handleCONNACK(mySocket,first);
+                            returnCode = handleCONNACK(mySocket, first);
                             break;
                         case 3:  // PUBLISH
-                            handlePUBLISH(mySocket, first);
+                            returnCode = handlePUBLISH(mySocket, first);
                             break;
                         case 4:  // PUBACK
-                            handlePUBACK(mySocket, first);
+                            returnCode = handlePUBACK(mySocket, first);
                             break;
                         case 5:  // PUBREC
+                            returnCode = 0;
                             break;
                         case 6:  // PUBREL
+                            returnCode = 0;
                             break;
                         case 7:  // PUBCOMP
+                            returnCode = 0;
                             break;
                         case 8:  // SUBSCRIBE
+                            returnCode = 0;
                             break;
                         case 9:  // SUBACK
-                            handleSUBACK(mySocket, first);
+                            returnCode = handleSUBACK(mySocket, first);
                             break;
                         case 10:  // UNSUBSCRIBE
+                            returnCode = 0;
                             break;
                         case 11:  // UNSUBACK
-                            handleUNSUBACK(mySocket, first);
+                            returnCode = handleUNSUBACK(mySocket, first);
                             break;
                         case 12:  // PINGREQ
+                            returnCode = 0;
                             break;
                         case 13:  // PINGRESP
-                            handlePINGRESP(mySocket, first);
+                            returnCode = handlePINGRESP(mySocket, first);
                             break;
                         case 14:  // DISCONNECT
+                            returnCode = 0;
                             break;
                         case 15:  // Reserved
+                            returnCode = 0;
                             break;
                         default:  // Default action
-                            Debug.Print("Bad Message received");
+                            Debug.Print("Unknown Message received");  // Should never get here
+                            returnCode = 1;
                             break;
                     }
+                    if (returnCode > 0)
+                        Debug.Print("An error occurred in message processing");
                 }
             }
+        }
+
+        //***************************************************************
+        //  Message handlers
+        //***************************************************************
+
+        public static int handleSUBACK(Socket mySocket, byte firstByte)
+        {
+            Debug.Print("Subscription Acknowledgement Received");
+            return 0;
+        }
+
+        // Messages from the broker come back to us as publish messages
+        public static int handlePUBLISH(Socket mySocket, byte firstByte)
+        {
+            Debug.Print("Publish Message Received");
+            return 0;
+        }
+
+        public static int handleUNSUBACK(Socket mySocket, byte firstByte)
+        {
+            Debug.Print("Unsubscription Acknowledgement Received");
+            return 0;
+        }
+
+        // Ping response - this should be 2 bytes - that's pretty much 
+        // all I'm looking for.
+        public static int handlePINGRESP(Socket mySocket, byte firstByte)
+        {
+            int returnCode = 0;
+            Debug.Print("Ping Response Received");
+            byte[] buffer = new byte[1];
+            returnCode = mySocket.Receive(buffer, 0);
+            if ((buffer[0] != 0) || (returnCode != 1))
+                return 1;
+            return 0;
+        }
+
+        // Connect acknowledgement - returns 3 more bytes, byte 3 
+        // should be 0 for success
+        public static int handleCONNACK(Socket mySocket, byte firstByte)
+        {
+            Debug.Print("Connection Acknowledgement Received");
+            int returnCode = 0;
+            byte[] buffer = new byte[3];
+            returnCode = mySocket.Receive(buffer, 0);
+            if ((buffer[0] != 2) || (buffer[3] > 0) || (returnCode != 3))
+                return 1;
+            return 0;
+        }
+
+        // We're not doing QoS 1 yet, so this is just here for flushing 
+        // and to notice if we are getting this message for some reason
+        public static int handlePUBACK(Socket mySocket, byte firstByte)
+        {
+            Debug.Print("Publication Acknowledgement Received");
+            int returnCode = 0;
+            byte[] buffer = new byte[3];
+            returnCode = mySocket.Receive(buffer, 0);
+            if ((buffer[0] != 2) || (returnCode != 3))
+                return 1;
+            return 0;
         }
     }
 }

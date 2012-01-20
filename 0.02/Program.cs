@@ -50,6 +50,11 @@ namespace myNetduinoMQTT
         public static void Main()
         {
             int returnCode = 0;
+            int[] topicQoS = {0,0};
+            String[] subTopics = {"test","test1"};
+            int numTopics = 2;
+            // 
+            Debug.EnableGCMessages(true);
             // Get broker's IP address.
             IPHostEntry hostEntry = Dns.GetHostEntry("192.168.1.106");
             // Create socket and connect to the broker's IP address and port
@@ -64,7 +69,8 @@ namespace myNetduinoMQTT
                 return;
             }
             // Send the connect message
-            returnCode = NetduinoMQTT.ConnectMQTT(mySocket, "tester\u00A5", 20, true, "roger\u00A5", "password\u00A5");
+            //returnCode = NetduinoMQTT.ConnectMQTT(mySocket, "tester\u00A5", 2000, true, "roger\u00A5", "password\u00A5");
+            returnCode = NetduinoMQTT.ConnectMQTT(mySocket, "tester", 2000, true, "", "");
             if (returnCode != 0)
             {
                 Debug.Print("Connection Error:");
@@ -77,7 +83,9 @@ namespace myNetduinoMQTT
             listenerThread = new Thread(mylistenerThread);
 
             listenerThread.Start();
-
+            Thread.Sleep(5000);
+            returnCode = NetduinoMQTT.SubscribeMQTT(mySocket, subTopics, topicQoS, numTopics);
+            Thread.Sleep(5000);
 
             // setup our interrupt port (on-board button)
             InterruptPort button = new InterruptPort(Pins.ONBOARD_SW1, false, Port.ResistorMode.Disabled, Port.InterruptMode.InterruptEdgeLow);
