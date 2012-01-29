@@ -2,14 +2,22 @@ NetduinoMQTT
 
 Introduction:
 
-This is a simple, incomplete, MQTT (MQTT.org) message publisher.  
+This is a simple, QoS 0, MQTT (MQTT.org) client.  
 
-It can be used by the Netduino to send MQTT messages to a MQTT broker.
+It can be used by the Netduino to send MQTT messages to a MQTT broker and subscribe to topics.
 
 This program is intended to be VERY readable - even at the expense of size/performance.
 
-Version 0.01(a) supports:
+The program.cs is just an example of using the library functions to interact with a broker.
 
+Version 0.02 supports:
+1.  Everything from 0.01(a)
+2.  Subscribing and unsubscribing
+3.  The client will respond to broker pings
+4.  The sizes of the various fields have been arbitrarily shortened
+    to keep this from eating all of the memory.
+
+Version 0.01(a) supports:
 1.  Connecting to an MQTT broker (RSMB and mosquitto have been tested) (Section 3.1)
 2.  Sending MQTT messages to a broker (Section 3.3)
 3.  Disconnecting from a broker (Section 3.14) 
@@ -17,12 +25,7 @@ Version 0.01(a) supports:
 
 Version 0.01 will not be further enhanced (beyond bug fixes and maintaining protocol support at this basic level of functionality).  I think it is important to keep a publish only version without the QoS or Subscribe stuff.  I think this is important both for understanding the basics and for a very small client.
 
-Version 0.02 (in progress) will support QoS 0 subscription functions.
-Version 0.03 will support QoS > 0 (maybe)
-
-So, yes, it is not a complete client at this time.  But as a "publisher", it supports useful features like authentication and full allowed length parameters (topic, message, username, password, etc).
-
-I've talked with a couple people about subscription functionality and I see where this could be useful - maybe a "command" or "query" channel.  So, we'll add that, but I think to do this correctly will involve some big changes (any read can be a message instead of being known to be a response to publish commands).
+I'm not sure where version 0.03 is going.  Maybe QoS 1 and basic broker functionality.  Maybe just QoS 1.  Maybe add in MQTT-S forwarder or  gateway functionality.
 
 None of this has been comprehensively tested.  If you do any testing - please let me know your results.  I did some very basic functional testing that seemed good and I'm planning on testing further when time allows.  But, if you use this - I'd love the feedback/assistance.
 

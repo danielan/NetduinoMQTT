@@ -14,7 +14,7 @@ are permitted provided that the following conditions are met:
 THIS SOFTWARE IS PROVIDED BY DAN ANDERSON ''AS IS'' AND ANY EXPRESS OR IMPLIED
 WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
 MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT 
-SHALL Dan Anderson OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, 
+SHALL DAN ANDERSON OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, 
 INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
 LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
 PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
@@ -39,24 +39,29 @@ namespace myNetduinoMQTT
     public class Program
     {
         static Thread listenerThread;
-
         static Socket mySocket = null;
-
-        static void pingIt(object o)
-        {
-            NetduinoMQTT.PingMQTT(mySocket);
-        }
 
         public static void Main()
         {
+
             int returnCode = 0;
-            int[] topicQoS = {0,0};
-            String[] subTopics = {"test","test1"};
-            int numTopics = 2;
-            // 
-            Debug.EnableGCMessages(true);
+            
+            // You can subscribe to multiple topics in one go 
+            // (If your broker supports this RSMB does, mosquitto does not)
+            // Our examples use one topic per request.
+            //
+            //int[] topicQoS = { 0, 0 };
+            //String[] subTopics = { "test", "test2" };
+            //int numTopics = 2;
+            
+            int[] topicQoS = { 0 };
+            String[] subTopics = { "test/#" };
+            int numTopics = 1;
+
             // Get broker's IP address.
-            IPHostEntry hostEntry = Dns.GetHostEntry("192.168.1.106");
+            IPHostEntry hostEntry = Dns.GetHostEntry("test.mosquitto.org");
+            //IPHostEntry hostEntry = Dns.GetHostEntry("192.168.1.106");
+            
             // Create socket and connect to the broker's IP address and port
             mySocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             try
@@ -65,27 +70,27 @@ namespace myNetduinoMQTT
             }
             catch (SocketException SE)
             {
-                Debug.Print("Connection Error");
+                Debug.Print("Connection Error: " + SE.ErrorCode);
                 return;
             }
+        
             // Send the connect message
+            // You can use UTF8 in the clientid, username and password - be careful, can be a pain
             //returnCode = NetduinoMQTT.ConnectMQTT(mySocket, "tester\u00A5", 2000, true, "roger\u00A5", "password\u00A5");
-            returnCode = NetduinoMQTT.ConnectMQTT(mySocket, "tester", 2000, true, "", "");
+            returnCode = NetduinoMQTT.ConnectMQTT(mySocket, "tester402", 20, true, "", "");
             if (returnCode != 0)
             {
-                Debug.Print("Connection Error:");
-                Debug.Print(returnCode.ToString());
+                Debug.Print("Connection Error: " + returnCode.ToString());
                 return;
             }
 
-            Timer MyTimer = new Timer(new TimerCallback(pingIt), null, 1000, 10000);
+            // Set up so that we ping the server after 1 second, then every 10 seconds
+            // First time is initial delay, Second is subsequent delays
+            Timer pingTimer = new Timer(new TimerCallback(pingIt), null, 1000, 10000);
 
+            // Setup and start a new thread for the listener
             listenerThread = new Thread(mylistenerThread);
-
             listenerThread.Start();
-            Thread.Sleep(5000);
-            returnCode = NetduinoMQTT.SubscribeMQTT(mySocket, subTopics, topicQoS, numTopics);
-            Thread.Sleep(5000);
 
             // setup our interrupt port (on-board button)
             InterruptPort button = new InterruptPort(Pins.ONBOARD_SW1, false, Port.ResistorMode.Disabled, Port.InterruptMode.InterruptEdgeLow);
@@ -93,22 +98,68 @@ namespace myNetduinoMQTT
             // assign our interrupt handler
             button.OnInterrupt += new NativeEventHandler(button_OnInterrupt);
 
-            // go to sleep until the interrupt wakes us (saves power)
+            // Subscribe to our topic(s)
+            returnCode = NetduinoMQTT.SubscribeMQTT(mySocket, subTopics, topicQoS, numTopics);
+
+            //***********************************************
+            // This is just some example stuff:
+            //***********************************************
+
+            // Publish a message
+            NetduinoMQTT.PublishMQTT(mySocket, "test", "Testing from NetduinoMQTT to test - AAAAAAAAAAAAAAA");
+            NetduinoMQTT.PublishMQTT(mySocket, "test", "Testing from NetduinoMQTT to test - BBBBBBBBBBBBBBB");
+           
+            // Subscribe to "test/two"
+            //subTopics[0] = "test/two";
+            //returnCode = NetduinoMQTT.SubscribeMQTT(mySocket, subTopics, topicQoS, numTopics);
+            
+            // Send a message to "test/two"
+            //NetduinoMQTT.PublishMQTT(mySocket, "test/two", "Testing from NetduinoMQTT to test/two");
+           
+             // Unsubscribe from "test/two"
+            //returnCode = NetduinoMQTT.UnsubscribeMQTT(mySocket, subTopics, topicQoS, numTopics);
+           
+            // Send a message to "test/two"
+            //NetduinoMQTT.PublishMQTT(mySocket, "test/two", "Testing again from NetduinoMQTT to test/two"); // Shouldn't see this one
+            
+            // Subscribe to "test/#"
+            //subTopics[0] = "test/#";
+            //returnCode = NetduinoMQTT.SubscribeMQTT(mySocket, subTopics, topicQoS, numTopics);
+ 
+            // Send a message to "test/two"
+            //NetduinoMQTT.PublishMQTT(mySocket, "test/three/one", "Testing again from NetduinoMQTT to test/three");
+            
+            // go to sleep until the interrupt or the timer wakes us 
+            // (mylistenerThread is in a seperate thread that continues)
             Thread.Sleep(Timeout.Infinite);
         }
 
-        // the interrupt handler 
+        // the interrupt handler for the button
         static void button_OnInterrupt(uint data1, uint data2, DateTime time)
         {
             // Send our message
             NetduinoMQTT.PublishMQTT(mySocket, "test", "Ow! Quit it!");
+            // Send a message to "test/two"
+            NetduinoMQTT.PublishMQTT(mySocket, "test/three/one", "Testing again from NetduinoMQTT to test/three");
+            NetduinoMQTT.PublishMQTT(mySocket, "test/two/one", "Testing again from NetduinoMQTT to test/two");
+            NetduinoMQTT.PublishMQTT(mySocket, "test/four/one", "Testing again from NetduinoMQTT to test/four");
+            NetduinoMQTT.PublishMQTT(mySocket, "test/five/one", "Testing again from NetduinoMQTT to test/fivr");
             return;
         }
 
+        // The thread that listens for inbound messages
         private static void mylistenerThread()
         {
                 NetduinoMQTT.listen(mySocket);
         }
-   
+
+        // The function that the timer calls to ping the server
+        // Our keep alive is 15 seconds - we ping again every 10. 
+        // So we should live forever.
+        static void pingIt(object o)
+        {
+            Debug.Print("pingIT");
+            NetduinoMQTT.PingMQTT(mySocket);
+        }
     }
 }
