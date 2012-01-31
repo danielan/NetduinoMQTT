@@ -55,12 +55,12 @@ namespace myNetduinoMQTT
             //int numTopics = 2;
             
             int[] topicQoS = { 0 };
-            String[] subTopics = { "test/#" };
+            String[] subTopics = { "test" };
             int numTopics = 1;
 
             // Get broker's IP address.
-            IPHostEntry hostEntry = Dns.GetHostEntry("test.mosquitto.org");
-            //IPHostEntry hostEntry = Dns.GetHostEntry("192.168.1.106");
+            //IPHostEntry hostEntry = Dns.GetHostEntry("test.mosquitto.org");
+            IPHostEntry hostEntry = Dns.GetHostEntry("192.168.1.106");
             
             // Create socket and connect to the broker's IP address and port
             mySocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -75,9 +75,9 @@ namespace myNetduinoMQTT
             }
         
             // Send the connect message
-            // You can use UTF8 in the clientid, username and password - be careful, can be a pain
+            // You can use UTF8 in the clientid, username and password - be careful, this can be a pain
             //returnCode = NetduinoMQTT.ConnectMQTT(mySocket, "tester\u00A5", 2000, true, "roger\u00A5", "password\u00A5");
-            returnCode = NetduinoMQTT.ConnectMQTT(mySocket, "tester402", 20, true, "", "");
+            returnCode = NetduinoMQTT.ConnectMQTT(mySocket, "tester402", 20, true, "roger", "password");
             if (returnCode != 0)
             {
                 Debug.Print("Connection Error: " + returnCode.ToString());
@@ -106,28 +106,17 @@ namespace myNetduinoMQTT
             //***********************************************
 
             // Publish a message
-            NetduinoMQTT.PublishMQTT(mySocket, "test", "Testing from NetduinoMQTT to test - AAAAAAAAAAAAAAA");
-            NetduinoMQTT.PublishMQTT(mySocket, "test", "Testing from NetduinoMQTT to test - BBBBBBBBBBBBBBB");
-           
+            NetduinoMQTT.PublishMQTT(mySocket, "test", "Testing from NetduinoMQTT");
+
             // Subscribe to "test/two"
-            //subTopics[0] = "test/two";
-            //returnCode = NetduinoMQTT.SubscribeMQTT(mySocket, subTopics, topicQoS, numTopics);
+            subTopics[0] = "test/two";
+            returnCode = NetduinoMQTT.SubscribeMQTT(mySocket, subTopics, topicQoS, numTopics);
             
             // Send a message to "test/two"
-            //NetduinoMQTT.PublishMQTT(mySocket, "test/two", "Testing from NetduinoMQTT to test/two");
+            NetduinoMQTT.PublishMQTT(mySocket, "test/two", "Testing from NetduinoMQTT to test/two");
            
              // Unsubscribe from "test/two"
-            //returnCode = NetduinoMQTT.UnsubscribeMQTT(mySocket, subTopics, topicQoS, numTopics);
-           
-            // Send a message to "test/two"
-            //NetduinoMQTT.PublishMQTT(mySocket, "test/two", "Testing again from NetduinoMQTT to test/two"); // Shouldn't see this one
-            
-            // Subscribe to "test/#"
-            //subTopics[0] = "test/#";
-            //returnCode = NetduinoMQTT.SubscribeMQTT(mySocket, subTopics, topicQoS, numTopics);
- 
-            // Send a message to "test/two"
-            //NetduinoMQTT.PublishMQTT(mySocket, "test/three/one", "Testing again from NetduinoMQTT to test/three");
+            returnCode = NetduinoMQTT.UnsubscribeMQTT(mySocket, subTopics, topicQoS, numTopics);
             
             // go to sleep until the interrupt or the timer wakes us 
             // (mylistenerThread is in a seperate thread that continues)
@@ -139,11 +128,6 @@ namespace myNetduinoMQTT
         {
             // Send our message
             NetduinoMQTT.PublishMQTT(mySocket, "test", "Ow! Quit it!");
-            // Send a message to "test/two"
-            NetduinoMQTT.PublishMQTT(mySocket, "test/three/one", "Testing again from NetduinoMQTT to test/three");
-            NetduinoMQTT.PublishMQTT(mySocket, "test/two/one", "Testing again from NetduinoMQTT to test/two");
-            NetduinoMQTT.PublishMQTT(mySocket, "test/four/one", "Testing again from NetduinoMQTT to test/four");
-            NetduinoMQTT.PublishMQTT(mySocket, "test/five/one", "Testing again from NetduinoMQTT to test/fivr");
             return;
         }
 
